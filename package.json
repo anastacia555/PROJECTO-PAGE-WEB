@@ -1,15 +1,13 @@
 {
-  "name": "projecto-pagina-web",
+  "name": "planejamento-carreira-educacional",
   "version": "1.0.0",
-  "description": "Aplicação web para planejamento de carreira educacional",
+  "description": "Projeto para planejamento de carreira educacional",
   "main": "server/app.js",
   "scripts": {
     "start": "node server/app.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "ws": "^8.13.0"
-  },
-  "author": "",
-  "license": "ISC"
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  }
 }
