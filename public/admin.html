@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração</title>
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+    <h1>Painel de Administração</h1>
+    <h3 id="adminInfo"></h3>
+    <button onclick="loadAdminData()">Carregar Dados e Relatórios</button>
+
+    <h2>Lista de Metas</h2>
+    <div id="goalsList"></div>
+
+    <div id="editGoalForm" style="display: none;">
+        <input type="hidden" id="editGoalId">
+        <label>Descrição:</label><br><input type="text" id="editGoalDescription"><br>
+        <label>Data de Início:</label><br><input type="date" id="editGoalStartDate"><br>
+        <label>Prazo:</label><br><input type="date" id="editGoalDeadline"><br>
+        <label>Categoria:</label><br>
+        <select id="editGoalCategory">
+            <option value="academica">Académica</option>
+            <option value="tecnica">Técnica</option>
+            <option value="pessoal">Pessoal</option>
+        </select><br>
+        <label>Estado:</label><br>
+        <select id="editGoalStatus">
+            <option value="nao_iniciada">Não Iniciada</option>
+            <option value="em_progresso">Em Progresso</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+        </select><br>
+        <label>Utilizador Associado:</label><br>
+        <select id="editGoalUserId"></select><br>
+        <button onclick="updateGoal()">Actualizar Meta</button>
+    </div>
+
+    <h2>Relatório de Acompanhamento de Metas</h2>
+    <div id="statusReport"></div>
+    <div id="completionReport"></div>
+
+    <h2>Relatório de Utilização e Envolvimento</h2>
+    <div id="engagementReport"></div>
+    <div id="mentorshipUsage"></div>
+    <div id="actionsByUserType"></div>
+
+    <h2>Registos do Administrador</h2>
+    <div id="adminLogs"></div>
+
+    <script>
+        let allUsers = [];
+
+        window.onload = function () {
+            const username = prompt("Nome de utilizador:");
+            const password = prompt("Senha:");
+
+            if (username === "Ana" && password === "1234") {
+                const token = "admin123";
+                localStorage.setItem('adminToken', token);
+                document.getElementById('adminInfo').innerText = `Autenticada como: ${username}`;
+                loadAdminData();
+            } else {
+                alert("Credenciais inválidas!");
+                window.location.href = "/";
+            }
+        };
+
+        function loadAdminData() {
+            const token = localStorage.getItem('adminToken');
+            fetch('/api/data', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Não autorizado');
+                return response.json();
+            })
+            .then(data => {
+                allUsers = data.users;
+                document.getElementById('editGoalUserId').innerHTML = allUsers.map(user => 
+                    `<option value="${user.id}">${user.name}</option>`
+                ).join('');
+
+                document.getElementById('goalsList').innerHTML = data.goals.map(goal => {
+                    const user = data.users.find(u => u.id === goal.userId);
+                    return `
+                        <div>
+                            <p><strong>Descrição:</strong> ${goal.description}</p>
+                            <p><strong>Estado:</strong> ${goal.status}</p>
+                            <p><strong>Categoria:</strong> ${goal.category}</p>
+                            <p><strong>Início:</strong> ${goal.startDate}</p>
+                            <p><strong>Prazo:</strong> ${goal.deadline}</p>
+                            <p><strong>Utilizador:</strong> ${user ? user.name : 'Desconhecido'}</p>
+                            <button onclick="editGoal('${goal.id}')">Editar</button>
+                            <button onclick="deleteGoal('${goal.id}')">Eliminar</button>
+                        </div>
+                    `;
+                }).join('');
+
+                const today = new Date();
+                const totalGoals = data.goals.length;
+                const statusCount = data.goals.reduce((acc, g) => {
+                    const deadline = new Date(g.deadline);
+                    const status = (['nao_iniciada', 'em_progresso'].includes(g.status) && today > deadline) ? 'atrasada' : g.status;
+                    acc[status] = (acc[status] || 0) + 1;
+                    return acc;
+                }, {});
+
+                document.getElementById('statusReport').innerHTML = `
+                    <p>Total de Metas: ${totalGoals}</p>
+                    <p>Em Progresso: ${((statusCount['em_progresso'] || 0) / totalGoals * 100).toFixed(2)}%</p>
+                    <p>Concluídas: ${((statusCount['concluida'] || 0) / totalGoals * 100).toFixed(2)}%</p>
+                    <p>Atrasadas: ${((statusCount['atrasada'] || 0) / totalGoals * 100).toFixed(2)}%</p>
+                    <p>Não Iniciadas: ${((statusCount['nao_iniciada'] || 0) / totalGoals * 100).toFixed(2)}%</p>
+                    <p>Canceladas: ${((statusCount['cancelada'] || 0) / totalGoals * 100).toFixed(2)}%</p>
+                `;
+
+                const userGoals = data.users.map(u => {
+                    const goals = data.goals.filter(g => g.userId === u.id);
+                    const concluida = goals.filter(g => g.status === 'concluida').length;
+                    return { type: u.type, completionRate: goals.length ? (concluida / goals.length * 100) : 0 };
+                });
+
+                const typeCompletion = userGoals.reduce((acc, u) => {
+                    if (!acc[u.type]) acc[u.type] = { total: 0, count: 0 };
+                    acc[u.type].total += u.completionRate;
+                    acc[u.type].count += 1;
+                    return acc;
+                }, {});
+
+                document.getElementById('completionReport').innerHTML = Object.keys(typeCompletion).map(t =>
+                    `<p>Média de Conclusão (${t}): ${(typeCompletion[t].total / typeCompletion[t].count).toFixed(2)}%</p>`
+                ).join('');
+
+                document.getElementById('engagementReport').innerHTML = `
+                    <p>Metas Criadas: ${data.goals.length}</p>
+                    <p>Metas Concluídas: ${data.goals.filter(g => g.status === 'concluida').length}</p>
+                    <p>Taxa de Conclusão: ${(data.goals.length ? data.goals.filter(g => g.status === 'concluida').length / data.goals.length * 100 : 0).toFixed(2)}%</p>
+                `;
+
+                document.getElementById('mentorshipUsage').innerHTML = `
+                    <p>Número de Mensagens no Chat de Mentoria: ${data.chatHistory.length}</p>
+                `;
+
+                const actions = data.adminLogs.reduce((acc, log) => {
+                    const user = data.users.find(u => u.id === (log.data.userId || (log.type === 'user' ? log.data.id : null)));
+                    const type = user ? user.type : 'desconhecido';
+                    if (!acc[type]) acc[type] = { criar: 0, editar: 0, excluir: 0 };
+                    if (log.action === 'add') acc[type].criar += 1;
+                    if (log.action === 'update') acc[type].editar += 1;
+                    if (log.action === 'delete') acc[type].excluir += 1;
+                    return acc;
+                }, {});
+
+                document.getElementById('actionsByUserType').innerHTML = Object.keys(actions).map(type =>
+                    `<p><strong>${type}:</strong> Criar: ${actions[type].criar}, Editar: ${actions[type].editar}, Eliminar: ${actions[type].excluir}</p>`
+                ).join('');
+
+                document.getElementById('adminLogs').innerHTML = data.adminLogs.map(log =>
+                    `<p>Ação: ${log.action} | Tipo: ${log.type} | Por: ${log.by} | Data: ${log.timestamp}</p>`
+                ).join('');
+            })
+            .catch(error => {
+                console.error('Erro ao carregar dados:', error);
+                alert('Erro ao carregar dados. Verifique o token.');
+                window.location.href = '/';
+            });
+        }
+
+        function editGoal(goalId) {
+            const token = localStorage.getItem('adminToken');
+            if (!token) return alert('Token inválido.');
+            fetch('/api/data', { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(res => res.json())
+                .then(data => {
+                    const goal = data.goals.find(g => g.id === goalId);
+                    if (!goal) return;
+                    document.getElementById('editGoalId').value = goal.id;
+                    document.getElementById('editGoalDescription').value = goal.description;
+                    document.getElementById('editGoalStartDate').value = goal.startDate;
+                    document.getElementById('editGoalDeadline').value = goal.deadline;
+                    document.getElementById('editGoalCategory').value = goal.category;
+                    document.getElementById('editGoalStatus').value = goal.status;
+                    document.getElementById('editGoalUserId').value = goal.userId;
+                    document.getElementById('editGoalForm').style.display = 'block';
+                });
+        }
+
+        function updateGoal() {
+            const token = localStorage.getItem('adminToken');
+            const id = document.getElementById('editGoalId').value;
+            const data = {
+                description: document.getElementById('editGoalDescription').value,
+                startDate: document.getElementById('editGoalStartDate').value,
+                deadline: document.getElementById('editGoalDeadline').value,
+                category: document.getElementById('editGoalCategory').value,
+                status: document.getElementById('editGoalStatus').value,
+                userId: document.getElementById('editGoalUserId').value
+            };
+            fetch(`/api/goals/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                alert(res.message);
+                document.getElementById('editGoalForm').style.display = 'none';
+                loadAdminData();
+            });
+        }
+
+        function deleteGoal(goalId) {
+            const token = localStorage.getItem('adminToken');
+            if (confirm('Tem a certeza que deseja eliminar esta meta?')) {
+                fetch(`/api/goals/${goalId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(res => {
+                    alert(res.message);
+                    loadAdminData();
+                });
+            }
+        }
+    </script>
+</body>
+</html>
