@@ -1,13 +1,17 @@
 {
   "name": "planejamento-carreira-educacional",
   "version": "1.0.0",
-  "description": "Projeto para planejamento de carreira educacional",
+  "description": "Aplicação web para planejamento de carreira usando AJAX, WebSocket, Node.js e Bootstrap",
   "main": "server/app.js",
   "scripts": {
     "start": "node server/app.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "bootstrap": "^5.3.3",
+    "express-session": "^1.17.3"
   }
 }

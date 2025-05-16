@@ -1,160 +1,130 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat de Mentoria</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f7f9;
-      margin: 0;
-      padding: 20px;
-    }
-
-    nav {
-      background-color: #0074d9;
-      padding: 10px;
-      text-align: center;
-    }
-
-    nav a {
-      color: white;
-      text-decoration: none;
-      margin: 0 15px;
-      font-weight: bold;
-    }
-
-    h1 {
-      text-align: center;
-      margin: 20px 0;
-      color: #333;
-    }
-
-    #chatBox {
-      width: 100%;
-      max-width: 400px;
-      height: 400px;
-      margin: 0 auto 20px auto;
-      background-color: #fff;
-      border-radius: 8px;
-      padding: 10px;
-      overflow-y: auto;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    }
-
-    .message {
-      margin: 10px 0;
-    }
-
-    .sender {
-      font-weight: bold;
-      font-size: 13px;
-      margin-bottom: 3px;
-    }
-
-    .bubble {
-      display: inline-block;
-      padding: 10px 15px;
-      border-radius: 15px;
-      background-color: #ffffff;
-      color: rgb(0, 0, 0);
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-
-    input, button {
-      width: 100%;
-      max-width: 400px;
-      display: block;
-      margin: 10px auto;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    button {
-      background-color: #0074d9;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #005fa3;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat de Suporte - Planejamento de Carreira</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Planejamento de Carreira</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link active" href="/chat">Chat de Suporte</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/reports">Relatórios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Sair</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-  <nav>
-    <a href="index.html">Início</a>
-    <a href="admin.html">Admin</a>
-    <a href="chat.html">Chat</a>
-  </nav>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Chat de Suporte para Planejamento de Carreira</h1>
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-body" id="chatMessages" style="height: 400px; overflow-y: auto;"></div>
+                    <div class="card-footer">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="chatInput" placeholder="Digite sua mensagem">
+                            <button class="btn btn-primary" onclick="sendChatMessage()">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <h1>Chat de Mentoria</h1>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const userId = localStorage.getItem('userId');
+        if (!userId || localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login';
 
-  <div id="chatBox"></div>
-
-  <input type="text" id="userName" placeholder="Digite seu nome">
-  <input type="text" id="message" placeholder="Digite sua mensagem...">
-  <button onclick="sendMessage()">Enviar</button>
-
-  <script>
-    function loadChatHistory() {
-      fetch('/api/chatHistory')
-        .then(res => res.json())
-        .then(history => {
-          const chatBox = document.getElementById('chatBox');
-          chatBox.innerHTML = '';
-          history.forEach(msg => {
-            const div = document.createElement('div');
-            div.className = 'message';
-
-            const sender = document.createElement('div');
-            sender.className = 'sender';
-            sender.textContent = msg.username;
-
-            const bubble = document.createElement('div');
-            bubble.className = 'bubble';
-            bubble.textContent = msg.message;
-
-            div.appendChild(sender);
-            div.appendChild(bubble);
-            chatBox.appendChild(div);
-          });
-          chatBox.scrollTop = chatBox.scrollHeight;
-        });
-    }
-
-    function sendMessage() {
-      const messageInput = document.getElementById('message');
-      const usernameInput = document.getElementById('userName');
-      const message = messageInput.value.trim();
-      const username = usernameInput.value.trim();
-
-      if (message && username) {
-        const ws = new WebSocket('ws://localhost:3000');
-        ws.onopen = () => {
-          ws.send(JSON.stringify({ username, message }));
-          messageInput.value = '';
-          ws.close();
+        let interactionCount = 0;
+        const maxInteractions = 5;
+        const botResponses = {
+            'como planejar minha carreira?': 'Primeiro, defina suas metas de curto e longo prazo. Identifique suas habilidades e interesses, e crie um plano com ações específicas.',
+            'quais são os passos para escolher uma carreira?': '1. Autoconhecimento: conheça seus interesses e valores. 2. Pesquisa: explore profissões. 3. Planejamento: defina metas. 4. Ação: busque experiências práticas. 5. Avaliação: ajuste conforme necessário.',
+            'como definir metas educacionais?': 'Use o método SMART: metas específicas, mensuráveis, alcançáveis, relevantes e com prazo definido.',
+            'o que fazer se estou indeciso sobre minha carreira?': 'Experimente estágios, converse com profissionais da área e busque mentoria para explorar opções.',
+            'como melhorar meu currículo?': 'Inclua experiências relevantes, destaque conquistas mensuráveis e personalize para cada vaga.'
         };
-      }
-    }
 
-    document.getElementById('message').addEventListener('keypress', function (event) {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
-    });
+        function addMessage(user, text, timestamp) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `<p><strong>${user}:</strong> ${text} <small>(${new Date(timestamp).toLocaleTimeString()})</small></p>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
 
-    window.onload = () => {
-      loadChatHistory();
-      setInterval(loadChatHistory, 3000);
-    };
-  </script>
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`/api/chat/${userId}`);
+                if (!response.ok) throw new Error('Erro ao carregar histórico de chat');
+                const messages = await response.json();
+                messages.forEach(msg => {
+                    addMessage(msg.isBot ? 'Bot' : 'Você', msg.message, msg.timestamp);
+                    if (msg.response) addMessage('Bot', msg.response, msg.timestamp);
+                });
+                interactionCount = messages.filter(m => !m.isBot).length;
+            } catch (err) {
+                console.error('Erro:', err.message);
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            if (!input.value) return;
+
+            const message = {
+                userId,
+                message: input.value,
+                timestamp: new Date().toISOString(),
+                isBot: false,
+                toUserId: interactionCount >= maxInteractions ? 'admin1' : 'all'
+            };
+
+            addMessage('Você', message.message, message.timestamp);
+            input.value = '';
+
+            if (interactionCount < maxInteractions) {
+                const responseText = botResponses[message.message.toLowerCase()] || 'Desculpe, não entendi. Tente outra pergunta.';
+                const botMessage = { ...message, message: responseText, isBot: true };
+                setTimeout(() => addMessage('Bot', responseText, message.timestamp), 1000);
+                interactionCount++;
+                if (interactionCount === maxInteractions) {
+                    setTimeout(() => addMessage('Bot', 'Interação com o chat esgotado, agora você está falando com o administrador.', new Date().toISOString()), 1500);
+                }
+            }
+
+            const ws = new WebSocket(`ws://localhost:3000?userId=${userId}`);
+            ws.onopen = () => ws.send(JSON.stringify(message));
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.userId !== userId && !msg.isBot) {
+                    addMessage('Admin', msg.message, msg.timestamp);
+                }
+            };
+            ws.onerror = (err) => console.error('Erro no WebSocket:', err);
+        }
+
+        function logout() {
+            fetch('/api/logout', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                localStorage.removeItem('userId');
+                localStorage.removeItem('isLoggedIn');
+                window.location.href = '/login';
+            });
+        }
+
+        window.onload = loadChatHistory;
+    </script>
 </body>
 </html>

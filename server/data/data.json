@@ -1,0 +1,97 @@
+{
+  "users": [
+    {
+      "id": "user1",
+      "username": "teste",
+      "name": "Usuário Teste",
+      "email": "teste@email.com",
+      "password": "teste123",
+      "type": "estudante",
+      "course": "Ciência da Computação",
+      "educationLevel": "graduacao"
+    },
+    {
+      "id": "1747395419003",
+      "username": "Esmael Chande",
+      "name": "Esmael",
+      "email": "echande@ucm.ac.mz",
+      "password": "1234",
+      "type": "estudante",
+      "course": "tecnologia",
+      "educationLevel": "ensino_medio"
+    },
+    {
+      "id": "1747396059353",
+      "username": "tobias",
+      "name": "tobias",
+      "email": "admin@escola.com",
+      "password": "1234",
+      "type": "estudante",
+      "course": "tecnologia",
+      "educationLevel": "ensino_medio"
+    }
+  ],
+  "admins": [
+    {
+      "id": "admin1",
+      "username": "Ana",
+      "password": "1234",
+      "name": "Ana Silva",
+      "token": "admin123"
+    }
+  ],
+  "goals": [
+    {
+      "id": "goal1",
+      "userId": "user1",
+      "description": "Concluir curso de programação",
+      "startDate": "2025-05-16",
+      "deadline": "2025-12-31",
+      "category": "académica",
+      "status": "em progresso"
+    }
+  ],
+  "progressReports": [
+    {
+      "id": "progress1",
+      "goalId": "goal1",
+      "text": "Concluí 50% do curso",
+      "updateDate": "2025-05-16",
+      "percentage": 50
+    }
+  ],
+  "chatHistory": [
+    {
+      "id": "chat1",
+      "userId": "user1",
+      "message": "Olá, preciso de ajuda com meu planejamento!",
+      "timestamp": "2025-05-16T09:00:00Z",
+      "isBot": true,
+      "response": "Claro! Como posso ajudar você hoje?"
+    },
+    {
+      "id": "1747395070763",
+      "userId": "admin",
+      "message": "oi",
+      "timestamp": "2025-05-16T11:31:10.714Z",
+      "isBot": false,
+      "toUserId": "all"
+    },
+    {
+      "id": "1747395176184",
+      "userId": "admin",
+      "message": "qua e o objetivo desta empresa?",
+      "timestamp": "2025-05-16T11:32:56.177Z",
+      "isBot": false,
+      "toUserId": "all"
+    }
+  ],
+  "actionsLog": [
+    {
+      "id": "action1",
+      "adminId": "admin1",
+      "action": "Adicionou meta goal1 para user1",
+      "timestamp": "2025-05-16T09:00:00Z"
+    }
+  ]
+}

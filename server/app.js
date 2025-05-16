@@ -1,40 +1,70 @@
+require('dotenv').config();
 const express = require('express');
-const path = require('path');
-const routes = require('./routes');
+const session = require('express-session');
+const cors = require('cors');
 const WebSocket = require('ws');
+const routes = require('./routes/routes');
 const app = express();
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'admin.html')));
-app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'chat.html')));
+// Configuração de middlewares
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-app.use('/api', routes);
+// Configuração de sessões
+app.use(session({
+    secret: 'secret-key-planejamento-carreira',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }
+}));
 
+// Usar rotas definidas em routes.js
+app.use('/', routes);
+
+// WebSocket para chat e contagem de usuários online
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT} às ${new Date().toLocaleString('pt-BR', { timeZone: 'Africa/Luanda' })}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
 
 const wss = new WebSocket.Server({ server });
+const onlineUsers = new Map();
 
-wss.on('connection', (ws) => {
-    console.log('Novo cliente conectado ao WebSocket');
-    routes.loadChatHistory().then(history => {
-        history.forEach(msg => ws.send(JSON.stringify(msg)));
-    }).catch(err => console.error('Erro ao carregar histórico:', err));
+wss.on('connection', (ws, req) => {
+    const userId = req.url.split('userId=')[1];
+    onlineUsers.set(userId, ws);
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'online', count: onlineUsers.size, users: Array.from(onlineUsers.keys()) }));
+        }
+    });
 
     ws.on('message', async (message) => {
-        const msgStr = message.toString();
-        wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(msgStr);
-            }
-        });
-        await routes.saveChatMessage(msgStr).catch(err => console.error('Erro ao salvar mensagem:', err));
+        const msg = JSON.parse(message);
+        const targetWs = onlineUsers.get(msg.toUserId);
+        if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+            targetWs.send(JSON.stringify(msg));
+        }
+        if (msg.toUserId === 'all') {
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(msg));
+                }
+            });
+        }
     });
 
     ws.on('close', () => {
-        console.log('Cliente desconectado do WebSocket');
+        onlineUsers.delete(userId);
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ type: 'online', count: onlineUsers.size, users: Array.from(onlineUsers.keys()) }));
+            }
+        });
     });
+});
+
+app.get('/api/online', (req, res) => {
+    res.json({ count: onlineUsers.size, users: Array.from(onlineUsers.keys()) });
 });

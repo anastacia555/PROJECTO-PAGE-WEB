@@ -1,0 +1,294 @@
+const express = require('express');
+const router = express.Router();
+const path = require('path');
+const fs = require('fs').promises;
+
+// Caminho do banco de dados
+const dataPath = path.join(__dirname, '..', 'data', 'data.json');
+
+// Função para carregar dados
+async function loadData() {
+    try {
+        const data = await fs.readFile(dataPath, 'utf8');
+        return JSON.parse(data);
+    } catch (err) {
+        return { users: [], admins: [], goals: [], progressReports: [], chatHistory: [], actionsLog: [] };
+    }
+}
+
+// Função para salvar dados
+async function saveData(data) {
+    await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+}
+
+// Função para verificar admin
+async function isAdmin(token) {
+    const data = await loadData();
+    return data.admins.some(admin => admin.token === token);
+}
+
+// Rotas para páginas HTML
+router.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', '..', 'public', 'index.html')));
+router.get('/login', (req, res) => res.sendFile(path.join(__dirname, '..', '..', 'public', 'login.html')));
+router.get('/register', (req, res) => res.sendFile(path.join(__dirname, '..', '..', 'public', 'register.html')));
+router.get('/main', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'main.html'));
+});
+router.get('/chat', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'chat.html'));
+});
+router.get('/reports', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'reports.html'));
+});
+router.get('/admin', async (req, res) => {
+    if (!req.session.adminToken || !(await isAdmin(req.session.adminToken))) {
+        return res.redirect('/login');
+    }
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'admin.html'));
+});
+
+// API para login
+router.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const data = await loadData();
+        const user = data.users.find(u => u.username === username && u.password === password);
+        if (user) {
+            req.session.userId = user.id;
+            res.json({ message: 'Login bem-sucedido', userId: user.id });
+        } else {
+            const admin = data.admins.find(a => a.username === username && a.password === password);
+            if (admin) {
+                req.session.adminToken = admin.token;
+                res.json({ message: 'Login como admin bem-sucedido', token: admin.token, name: admin.name });
+            } else {
+                res.status(401).json({ message: 'Credenciais inválidas' });
+            }
+        }
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao fazer login', error: err.message });
+    }
+});
+
+// API para logout
+router.post('/api/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ message: 'Logout bem-sucedido' });
+});
+
+// API para cadastro
+router.post('/api/users', async (req, res) => {
+    try {
+        const data = await loadData();
+        const newUser = { id: Date.now().toString(), ...req.body };
+        data.users.push(newUser);
+        await saveData(data);
+        res.json({ message: 'Usuário cadastrado com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao cadastrar usuário', error: err.message });
+    }
+});
+
+// API para CRUD de metas
+router.post('/api/goals', async (req, res) => {
+    try {
+        const data = await loadData();
+        const newGoal = { id: Date.now().toString(), ...req.body };
+        data.goals.push(newGoal);
+        await saveData(data);
+        res.json({ message: 'Meta adicionada com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao adicionar meta', error: err.message });
+    }
+});
+
+router.put('/api/goals/:id', async (req, res) => {
+    try {
+        const data = await loadData();
+        const goalIndex = data.goals.findIndex(g => g.id === req.params.id);
+        if (goalIndex === -1) return res.status(404).json({ message: 'Meta não encontrada' });
+        data.goals[goalIndex] = { ...data.goals[goalIndex], ...req.body };
+        await saveData(data);
+        res.json({ message: 'Meta atualizada com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao atualizar meta', error: err.message });
+    }
+});
+
+router.delete('/api/goals/:id', async (req, res) => {
+    try {
+        const data = await loadData();
+        data.goals = data.goals.filter(g => g.id !== req.params.id);
+        await saveData(data);
+        res.json({ message: 'Meta excluída com sucesso' });
+    } catch (err) {
+    res.status(500).json({ message: 'Erro ao excluir meta', error: err.message });
+    }
+});
+
+router.get('/api/goals/:userId', async (req, res) => {
+    const data = await loadData();
+    const goals = data.goals.filter(g => g.userId === req.params.userId);
+    res.json(goals);
+});
+
+// API para relatórios de progresso
+router.post('/api/progress', async (req, res) => {
+    try {
+        const data = await loadData();
+        const newProgress = { id: Date.now().toString(), ...req.body };
+        data.progressReports.push(newProgress);
+        await saveData(data);
+        res.json({ message: 'Relatório de progresso adicionado com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao adicionar relatório', error: err.message });
+    }
+});
+
+router.get('/api/progress/:goalId', async (req, res) => {
+    const data = await loadData();
+    const progress = data.progressReports.filter(p => p.goalId === req.params.goalId);
+    res.json(progress);
+});
+
+// API para listar usuários (admin)
+router.get('/api/users', async (req, res) => {
+    const token = req.session.adminToken;
+    if (!token || !(await isAdmin(token))) {
+        return res.status(401).json({ message: 'Não autorizado' });
+    }
+    const data = await loadData();
+    res.json(data.users);
+});
+
+// API para gerenciar admins
+router.post('/api/admins', async (req, res) => {
+    const token = req.session.adminToken;
+    if (!token || !(await isAdmin(token))) {
+        return res.status(401).json({ message: 'Não autorizado' });
+    }
+    try {
+        const data = await loadData();
+        const newAdmin = { id: Date.now().toString(), ...req.body, token: `admin${Date.now()}` };
+        data.admins.push(newAdmin);
+        await saveData(data);
+        res.json({ message: 'Admin adicionado com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao adicionar admin', error: err.message });
+    }
+});
+
+router.put('/api/admins/:id', async (req, res) => {
+    const token = req.session.adminToken;
+    if (!token || !(await isAdmin(token))) {
+        return res.status(401).json({ message: 'Não autorizado' });
+    }
+    try {
+        const data = await loadData();
+        const adminIndex = data.admins.findIndex(a => a.id === req.params.id);
+        if (adminIndex === -1) return res.status(404).json({ message: 'Admin não encontrado' });
+        data.admins[adminIndex] = { ...data.admins[adminIndex], ...req.body };
+        await saveData(data);
+        res.json({ message: 'Admin atualizado com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao atualizar admin', error: err.message });
+    }
+});
+
+router.delete('/api/admins/:id', async (req, res) => {
+    const token = req.session.adminToken;
+    if (!token || !(await isAdmin(token))) {
+        return res.status(401).json({ message: 'Não autorizado' });
+    }
+    try {
+        const data = await loadData();
+        data.admins = data.admins.filter(a => a.id !== req.params.id);
+        await saveData(data);
+        res.json({ message: 'Admin excluído com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao excluir admin', error: err.message });
+    }
+});
+
+router.get('/api/admins', async (req, res) => {
+    const token = req.session.adminToken;
+    if (!token || !(await isAdmin(token))) {
+        return res.status(401).json({ message: 'Não autorizado' });
+    }
+    const data = await loadData();
+    res.json(data.admins);
+});
+
+// API para logs de ações
+router.get('/api/actions', async (req, res) => {
+    const token = req.session.adminToken;
+    if (!token || !(await isAdmin(token))) {
+        return res.status(401).json({ message: 'Não autorizado' });
+    }
+    const data = await loadData();
+    res.json(data.actionsLog);
+});
+
+// API para chat history
+router.get('/api/chat/:userId', async (req, res) => {
+    const data = await loadData();
+    const chat = data.chatHistory.filter(c => c.userId === req.params.userId);
+    res.json(chat);
+});
+
+// API para relatórios
+router.get('/api/reports/goals', async (req, res) => {
+    const data = await loadData();
+    const totalGoals = data.goals.length;
+    const statusStats = {
+        'em progresso': 0,
+        'concluída': 0,
+        'atrasada': 0,
+        'não iniciada': 0,
+        'cancelada': 0
+    };
+    const userTypeStats = {};
+    data.goals.forEach(goal => {
+        statusStats[goal.status] = (statusStats[goal.status] || 0) + 1;
+        const user = data.users.find(u => u.id === goal.userId);
+        if (user) {
+            userTypeStats[user.type] = userTypeStats[user.type] || { total: 0, completed: 0 };
+            userTypeStats[user.type].total++;
+            if (goal.status === 'concluída') userTypeStats[user.type].completed++;
+        }
+    });
+    const statusPercentages = {};
+    for (const status in statusStats) {
+        statusPercentages[status] = totalGoals ? (statusStats[status] / totalGoals * 100).toFixed(2) : 0;
+    }
+    const completionByType = {};
+    for (const type in userTypeStats) {
+        completionByType[type] = userTypeStats[type].total ? (userTypeStats[type].completed / userTypeStats[type].total * 100).toFixed(2) : 0;
+    }
+    res.json({ statusPercentages, completionByType });
+});
+
+router.get('/api/reports/engagement', async (req, res) => {
+    const data = await loadData();
+    const goalsCreated = data.goals.length;
+    const goalsCompleted = data.goals.filter(g => g.status === 'concluída').length;
+    const chatUsage = data.chatHistory.filter(c => !c.isBot).length;
+    const actionsByType = {};
+    data.users.forEach(user => {
+        actionsByType[user.type] = actionsByType[user.type] || { create: 0, edit: 0, delete: 0 };
+        const userGoals = data.goals.filter(g => g.userId === user.id);
+        actionsByType[user.type].create += userGoals.length;
+        const userActions = data.actionsLog.filter(a => a.action.includes(user.id));
+        userActions.forEach(action => {
+            if (action.action.includes('Adicionou')) actionsByType[user.type].create++;
+            if (action.action.includes('Atualizou')) actionsByType[user.type].edit++;
+            if (action.action.includes('Excluiu')) actionsByType[user.type].delete++;
+        });
+    });
+    res.json({ goalsCreated, goalsCompleted, chatUsage, actionsByType });
+});
+
+module.exports = router;

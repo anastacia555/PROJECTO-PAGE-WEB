@@ -3,231 +3,337 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Administração</title>
-    <link rel="stylesheet" href="estilo.css">
+    <title>Admin - Planejamento de Carreira</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Painel de Administração</h1>
-    <h3 id="adminInfo"></h3>
-    <button onclick="loadAdminData()">Carregar Dados e Relatórios</button>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Planejamento de Carreira</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/register">Registre-se</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/chat">Chat de Suporte</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/reports">Relatórios</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <h2>Lista de Metas</h2>
-    <div id="goalsList"></div>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Painel de Administração</h1>
 
-    <div id="editGoalForm" style="display: none;">
-        <input type="hidden" id="editGoalId">
-        <label>Descrição:</label><br><input type="text" id="editGoalDescription"><br>
-        <label>Data de Início:</label><br><input type="date" id="editGoalStartDate"><br>
-        <label>Prazo:</label><br><input type="date" id="editGoalDeadline"><br>
-        <label>Categoria:</label><br>
-        <select id="editGoalCategory">
-            <option value="academica">Académica</option>
-            <option value="tecnica">Técnica</option>
-            <option value="pessoal">Pessoal</option>
-        </select><br>
-        <label>Estado:</label><br>
-        <select id="editGoalStatus">
-            <option value="nao_iniciada">Não Iniciada</option>
-            <option value="em_progresso">Em Progresso</option>
-            <option value="concluida">Concluída</option>
-            <option value="cancelada">Cancelada</option>
-        </select><br>
-        <label>Utilizador Associado:</label><br>
-        <select id="editGoalUserId"></select><br>
-        <button onclick="updateGoal()">Actualizar Meta</button>
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" id="monitor-tab" data-bs-toggle="tab" href="#monitor">Monitoramento</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="manage-admins-tab" data-bs-toggle="tab" href="#manage-admins">Gerenciar Admins</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="chat-tab" data-bs-toggle="tab" href="#chat">Chat com Usuários</a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Monitoramento -->
+            <div class="tab-pane fade show active" id="monitor">
+                <div class="card mb-4">
+                    <div class="card-header">Usuários Online</div>
+                    <div class="card-body">
+                        <p><strong>Total Online:</strong> <span id="onlineCount"></span></p>
+                        <ul id="onlineUsers"></ul>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">Lista de Usuários</div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Tipo</th>
+                                    <th>Curso</th>
+                                    <th>Nível Educacional</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">Logs de Ações</div>
+                    <div class="card-body" id="actionsLog" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+
+            <!-- Gerenciar Admins -->
+            <div class="tab-pane fade" id="manage-admins">
+                <div class="card mb-4">
+                    <div class="card-header">Adicionar Admin</div>
+                    <div class="card-body">
+                        <form id="adminForm">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="adminUsername" class="form-label">Nome de Utilizador</label>
+                                    <input type="text" class="form-control" id="adminUsername" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="adminPassword" class="form-label">Senha</label>
+                                    <input type="password" class="form-control" id="adminPassword" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="adminName" class="form-label">Nome</label>
+                                    <input type="text" class="form-control" id="adminName" required>
+                                </div>
+                                <div class="col-md-12">
+                                    <button type="button" class="btn btn-primary" onclick="addAdmin()">Adicionar Admin</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">Lista de Admins</div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Usuário</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat com Usuários -->
+            <div class="tab-pane fade" id="chat">
+                <div class="card mb-4">
+                    <div class="card-header">Chat com Usuários</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="userSelect" class="form-label">Selecione o Usuário</label>
+                            <select class="form-select" id="userSelect" onchange="selectUser()">
+                                <option value="">Selecione um usuário</option>
+                            </select>
+                        </div>
+                        <div class="card">
+                            <div class="card-body" id="adminChatMessages" style="height: 400px; overflow-y: auto;"></div>
+                            <div class="card-footer">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="adminChatInput" placeholder="Digite sua mensagem">
+                                    <button class="btn btn-primary" onclick="sendAdminMessage()">Enviar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <h2>Relatório de Acompanhamento de Metas</h2>
-    <div id="statusReport"></div>
-    <div id="completionReport"></div>
-
-    <h2>Relatório de Utilização e Envolvimento</h2>
-    <div id="engagementReport"></div>
-    <div id="mentorshipUsage"></div>
-    <div id="actionsByUserType"></div>
-
-    <h2>Registos do Administrador</h2>
-    <div id="adminLogs"></div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let allUsers = [];
+        const adminToken = localStorage.getItem('adminToken');
+        if (!adminToken) window.location.href = '/login';
+        let selectedUserId = null;
 
-        window.onload = function () {
-            const username = prompt("Nome de utilizador:");
-            const password = prompt("Senha:");
-
-            if (username === "Ana" && password === "1234") {
-                const token = "admin123";
-                localStorage.setItem('adminToken', token);
-                document.getElementById('adminInfo').innerText = `Autenticada como: ${username}`;
-                loadAdminData();
-            } else {
-                alert("Credenciais inválidas!");
-                window.location.href = "/";
-            }
-        };
-
-        function loadAdminData() {
-            const token = localStorage.getItem('adminToken');
-            fetch('/api/data', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Não autorizado');
-                return response.json();
-            })
-            .then(data => {
-                allUsers = data.users;
-                document.getElementById('editGoalUserId').innerHTML = allUsers.map(user => 
-                    `<option value="${user.id}">${user.name}</option>`
-                ).join('');
-
-                document.getElementById('goalsList').innerHTML = data.goals.map(goal => {
-                    const user = data.users.find(u => u.id === goal.userId);
-                    return `
-                        <div>
-                            <p><strong>Descrição:</strong> ${goal.description}</p>
-                            <p><strong>Estado:</strong> ${goal.status}</p>
-                            <p><strong>Categoria:</strong> ${goal.category}</p>
-                            <p><strong>Início:</strong> ${goal.startDate}</p>
-                            <p><strong>Prazo:</strong> ${goal.deadline}</p>
-                            <p><strong>Utilizador:</strong> ${user ? user.name : 'Desconhecido'}</p>
-                            <button onclick="editGoal('${goal.id}')">Editar</button>
-                            <button onclick="deleteGoal('${goal.id}')">Eliminar</button>
-                        </div>
-                    `;
-                }).join('');
-
-                const today = new Date();
-                const totalGoals = data.goals.length;
-                const statusCount = data.goals.reduce((acc, g) => {
-                    const deadline = new Date(g.deadline);
-                    const status = (['nao_iniciada', 'em_progresso'].includes(g.status) && today > deadline) ? 'atrasada' : g.status;
-                    acc[status] = (acc[status] || 0) + 1;
-                    return acc;
-                }, {});
-
-                document.getElementById('statusReport').innerHTML = `
-                    <p>Total de Metas: ${totalGoals}</p>
-                    <p>Em Progresso: ${((statusCount['em_progresso'] || 0) / totalGoals * 100).toFixed(2)}%</p>
-                    <p>Concluídas: ${((statusCount['concluida'] || 0) / totalGoals * 100).toFixed(2)}%</p>
-                    <p>Atrasadas: ${((statusCount['atrasada'] || 0) / totalGoals * 100).toFixed(2)}%</p>
-                    <p>Não Iniciadas: ${((statusCount['nao_iniciada'] || 0) / totalGoals * 100).toFixed(2)}%</p>
-                    <p>Canceladas: ${((statusCount['cancelada'] || 0) / totalGoals * 100).toFixed(2)}%</p>
+        // Carregar usuários
+        async function loadUsers() {
+            const response = await fetch('/api/users', {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            if (!response.ok) window.location.href = '/login';
+            const users = await response.json();
+            const tableBody = document.getElementById('userTable');
+            tableBody.innerHTML = '';
+            users.forEach(user => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.type}</td>
+                        <td>${user.course}</td>
+                        <td>${user.educationLevel}</td>
+                    </tr>
                 `;
-
-                const userGoals = data.users.map(u => {
-                    const goals = data.goals.filter(g => g.userId === u.id);
-                    const concluida = goals.filter(g => g.status === 'concluida').length;
-                    return { type: u.type, completionRate: goals.length ? (concluida / goals.length * 100) : 0 };
-                });
-
-                const typeCompletion = userGoals.reduce((acc, u) => {
-                    if (!acc[u.type]) acc[u.type] = { total: 0, count: 0 };
-                    acc[u.type].total += u.completionRate;
-                    acc[u.type].count += 1;
-                    return acc;
-                }, {});
-
-                document.getElementById('completionReport').innerHTML = Object.keys(typeCompletion).map(t =>
-                    `<p>Média de Conclusão (${t}): ${(typeCompletion[t].total / typeCompletion[t].count).toFixed(2)}%</p>`
-                ).join('');
-
-                document.getElementById('engagementReport').innerHTML = `
-                    <p>Metas Criadas: ${data.goals.length}</p>
-                    <p>Metas Concluídas: ${data.goals.filter(g => g.status === 'concluida').length}</p>
-                    <p>Taxa de Conclusão: ${(data.goals.length ? data.goals.filter(g => g.status === 'concluida').length / data.goals.length * 100 : 0).toFixed(2)}%</p>
-                `;
-
-                document.getElementById('mentorshipUsage').innerHTML = `
-                    <p>Número de Mensagens no Chat de Mentoria: ${data.chatHistory.length}</p>
-                `;
-
-                const actions = data.adminLogs.reduce((acc, log) => {
-                    const user = data.users.find(u => u.id === (log.data.userId || (log.type === 'user' ? log.data.id : null)));
-                    const type = user ? user.type : 'desconhecido';
-                    if (!acc[type]) acc[type] = { criar: 0, editar: 0, excluir: 0 };
-                    if (log.action === 'add') acc[type].criar += 1;
-                    if (log.action === 'update') acc[type].editar += 1;
-                    if (log.action === 'delete') acc[type].excluir += 1;
-                    return acc;
-                }, {});
-
-                document.getElementById('actionsByUserType').innerHTML = Object.keys(actions).map(type =>
-                    `<p><strong>${type}:</strong> Criar: ${actions[type].criar}, Editar: ${actions[type].editar}, Eliminar: ${actions[type].excluir}</p>`
-                ).join('');
-
-                document.getElementById('adminLogs').innerHTML = data.adminLogs.map(log =>
-                    `<p>Ação: ${log.action} | Tipo: ${log.type} | Por: ${log.by} | Data: ${log.timestamp}</p>`
-                ).join('');
-            })
-            .catch(error => {
-                console.error('Erro ao carregar dados:', error);
-                alert('Erro ao carregar dados. Verifique o token.');
-                window.location.href = '/';
             });
         }
 
-        function editGoal(goalId) {
-            const token = localStorage.getItem('adminToken');
-            if (!token) return alert('Token inválido.');
-            fetch('/api/data', { headers: { 'Authorization': `Bearer ${token}` } })
-                .then(res => res.json())
-                .then(data => {
-                    const goal = data.goals.find(g => g.id === goalId);
-                    if (!goal) return;
-                    document.getElementById('editGoalId').value = goal.id;
-                    document.getElementById('editGoalDescription').value = goal.description;
-                    document.getElementById('editGoalStartDate').value = goal.startDate;
-                    document.getElementById('editGoalDeadline').value = goal.deadline;
-                    document.getElementById('editGoalCategory').value = goal.category;
-                    document.getElementById('editGoalStatus').value = goal.status;
-                    document.getElementById('editGoalUserId').value = goal.userId;
-                    document.getElementById('editGoalForm').style.display = 'block';
-                });
+        // Carregar usuários online
+        async function loadOnlineUsers() {
+            const response = await fetch('/api/online');
+            const data = await response.json();
+            document.getElementById('onlineCount').innerText = data.count;
+            const userList = document.getElementById('onlineUsers');
+            const userSelect = document.getElementById('userSelect');
+            userList.innerHTML = '';
+            userSelect.innerHTML = '<option value="">Selecione um usuário</option>';
+            data.users.forEach(userId => {
+                userList.innerHTML += `<li>${userId}</li>`;
+                userSelect.innerHTML += `<option value="${userId}">${userId}</option>`;
+            });
         }
 
-        function updateGoal() {
-            const token = localStorage.getItem('adminToken');
-            const id = document.getElementById('editGoalId').value;
-            const data = {
-                description: document.getElementById('editGoalDescription').value,
-                startDate: document.getElementById('editGoalStartDate').value,
-                deadline: document.getElementById('editGoalDeadline').value,
-                category: document.getElementById('editGoalCategory').value,
-                status: document.getElementById('editGoalStatus').value,
-                userId: document.getElementById('editGoalUserId').value
+        // Carregar logs de ações
+        async function loadActionsLog() {
+            const response = await fetch('/api/actions', {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const actions = await response.json();
+            const actionsLog = document.getElementById('actionsLog');
+            actionsLog.innerHTML = '';
+            actions.forEach(action => {
+                actionsLog.innerHTML += `<p>${action.action} <small>(${new Date(action.timestamp).toLocaleTimeString()})</small></p>`;
+            });
+        }
+
+        // Carregar e gerenciar admins
+        async function loadAdmins() {
+            const response = await fetch('/api/admins', {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const admins = await response.json();
+            const tableBody = document.getElementById('adminTable');
+            tableBody.innerHTML = '';
+            admins.forEach(admin => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${admin.name}</td>
+                        <td>${admin.username}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editAdmin('${admin.id}')">Editar</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteAdmin('${admin.id}')">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function addAdmin() {
+            const admin = {
+                username: document.getElementById('adminUsername').value,
+                password: document.getElementById('adminPassword').value,
+                name: document.getElementById('adminName').value
             };
-            fetch(`/api/goals/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(data)
+            fetch('/api/admins', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+                body: JSON.stringify(admin)
             })
             .then(res => res.json())
-            .then(res => {
-                alert(res.message);
-                document.getElementById('editGoalForm').style.display = 'none';
-                loadAdminData();
-            });
+            .then(data => {
+                alert(data.message);
+                loadAdmins();
+                document.getElementById('adminForm').reset();
+            })
+            .catch(err => alert('Erro: ' + err.message));
         }
 
-        function deleteGoal(goalId) {
-            const token = localStorage.getItem('adminToken');
-            if (confirm('Tem a certeza que deseja eliminar esta meta?')) {
-                fetch(`/api/goals/${goalId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+        function editAdmin(id) {
+            const username = prompt('Novo nome de utilizador:');
+            const password = prompt('Nova senha:');
+            if (username && password) {
+                fetch(`/api/admins/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+                    body: JSON.stringify({ username, password })
                 })
                 .then(res => res.json())
-                .then(res => {
-                    alert(res.message);
-                    loadAdminData();
-                });
+                .then(data => {
+                    alert(data.message);
+                    loadAdmins();
+                })
+                .catch(err => alert('Erro: ' + err.message));
             }
         }
+
+        function deleteAdmin(id) {
+            if (confirm('Tem certeza que deseja excluir este admin?')) {
+                fetch(`/api/admins/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    loadAdmins();
+                })
+                .catch(err => alert('Erro: ' + err.message));
+            }
+        }
+
+        // Gerenciar chat
+        function selectUser() {
+            selectedUserId = document.getElementById('userSelect').value;
+            loadChatMessages();
+        }
+
+        async function loadChatMessages() {
+            if (!selectedUserId) {
+                document.getElementById('adminChatMessages').innerHTML = '<p>Selecione um usuário para ver o chat.</p>';
+                return;
+            }
+            const response = await fetch(`/api/chat/${selectedUserId}`);
+            const messages = await response.json();
+            const chatMessages = document.getElementById('adminChatMessages');
+            chatMessages.innerHTML = '';
+            messages.forEach(msg => {
+                chatMessages.innerHTML += `<p><strong>${msg.isBot ? 'Bot' : 'Usuário'}:</strong> ${msg.message} <small>(${new Date(msg.timestamp).toLocaleTimeString()})</small></p>`;
+                if (msg.response) chatMessages.innerHTML += `<p><strong>Bot:</strong> ${msg.response} <small>(${new Date(msg.timestamp).toLocaleTimeString()})</small></p>`;
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function sendAdminMessage() {
+            if (!selectedUserId) {
+                alert('Selecione um usuário para conversar.');
+                return;
+            }
+            const input = document.getElementById('adminChatInput');
+            if (!input.value) return;
+
+            const message = {
+                userId: 'admin1',
+                message: input.value,
+                timestamp: new Date().toISOString(),
+                toUserId: selectedUserId,
+                isBot: false
+            };
+
+            const chatMessages = document.getElementById('adminChatMessages');
+            chatMessages.innerHTML += `<p><strong>Você:</strong> ${message.message} <small>(${new Date(message.timestamp).toLocaleTimeString()})</small></p>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            input.value = '';
+
+            const ws = new WebSocket(`ws://localhost:3000?userId=admin1`);
+            ws.onopen = () => ws.send(JSON.stringify(message));
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.userId !== 'admin1' && !msg.isBot) {
+                    chatMessages.innerHTML += `<p><strong>Usuário:</strong> ${msg.message} <small>(${new Date(msg.timestamp).toLocaleTimeString()})</small></p>`;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            };
+        }
+
+        // Inicialização
+        window.onload = () => {
+            loadUsers();
+            loadOnlineUsers();
+            loadActionsLog();
+            loadAdmins();
+            setInterval(loadOnlineUsers, 5000); // Atualiza usuários online a cada 5 segundos
+        };
     </script>
 </body>
 </html>

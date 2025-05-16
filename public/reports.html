@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Planejamento de Carreira</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Planejamento de Carreira</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/chat">Chat de Suporte</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/reports">Relatórios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Sair</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Relatórios</h1>
+
+        <div class="card mb-4">
+            <div class="card-header">Relatório de Acompanhamento de Metas</div>
+            <div class="card-body">
+                <h5>Percentagem de Metas por Status</h5>
+                <ul id="statusPercentages"></ul>
+                <h5>Média de Conclusão por Tipo de Utilizador</h5>
+                <ul id="completionByType"></ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Relatório de Utilização e Engajamento</div>
+            <div class="card-body">
+                <p><strong>Metas Criadas:</strong> <span id="goalsCreated"></span></p>
+                <p><strong>Metas Concluídas:</strong> <span id="goalsCompleted"></span></p>
+                <p><strong>Frequência de Uso do Chat:</strong> <span id="chatUsage"></span></p>
+                <h5>Ações por Tipo de Utilizador</h5>
+                <ul id="actionsByType"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login';
+
+        async function loadGoalReport() {
+            try {
+                const response = await fetch('/api/reports/goals');
+                if (!response.ok) throw new Error('Erro ao carregar relatório de metas');
+                const data = await response.json();
+                const statusList = document.getElementById('statusPercentages');
+                const completionList = document.getElementById('completionByType');
+                for (const status in data.statusPercentages) {
+                    statusList.innerHTML += `<li>${status}: ${data.statusPercentages[status]}%</li>`;
+                }
+                for (const type in data.completionByType) {
+                    completionList.innerHTML += `<li>${type}: ${data.completionByType[type]}%</li>`;
+                }
+            } catch (err) {
+                console.error('Erro:', err.message);
+            }
+        }
+
+        async function loadEngagementReport() {
+            try {
+                const response = await fetch('/api/reports/engagement');
+                if (!response.ok) throw new Error('Erro ao carregar relatório de engajamento');
+                const data = await response.json();
+                document.getElementById('goalsCreated').innerText = data.goalsCreated;
+                document.getElementById('goalsCompleted').innerText = data.goalsCompleted;
+                document.getElementById('chatUsage').innerText = data.chatUsage;
+                const actionsList = document.getElementById('actionsByType');
+                for (const type in data.actionsByType) {
+                    actionsList.innerHTML += `<li>${type}: Criar: ${data.actionsByType[type].create}, Editar: ${data.actionsByType[type].edit}, Excluir: ${data.actionsByType[type].delete}</li>`;
+                }
+            } catch (err) {
+                console.error('Erro:', err.message);
+            }
+        }
+
+        function logout() {
+            fetch('/api/logout', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                localStorage.removeItem('userId');
+                localStorage.removeItem('isLoggedIn');
+                window.location.href = '/login';
+            });
+        }
+
+        window.onload = () => {
+            loadGoalReport();
+            loadEngagementReport();
+        };
+    </script>
+</body>
+</html>
